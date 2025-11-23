@@ -71,6 +71,9 @@ export async function getEndpointSchema(args: any) {
     }
 
     // Build schema from discovered endpoint
+    const bodyParams = endpointInfo.parameters?.filter((p) => p.location === "body") || [];
+    const hasBodyParams = bodyParams.length > 0;
+    
     const result = {
       endpoint,
       method,
@@ -79,16 +82,14 @@ export async function getEndpointSchema(args: any) {
         headers: {},
         queryParams: endpointInfo.parameters?.filter((p) => p.location === "query") || [],
         pathParams: endpointInfo.parameters?.filter((p) => p.location === "path") || [],
-        body: endpointInfo.parameters?.filter((p) => p.location === "body").length > 0
+        body: hasBodyParams
           ? {
               schema: {
                 type: "object",
-                properties: endpointInfo.parameters
-                  .filter((p) => p.location === "body")
-                  .reduce((acc, p) => {
-                    acc[p.name] = { type: p.type };
-                    return acc;
-                  }, {} as Record<string, any>),
+                properties: bodyParams.reduce((acc, p) => {
+                  acc[p.name] = { type: p.type };
+                  return acc;
+                }, {} as Record<string, any>),
               },
             }
           : undefined,
