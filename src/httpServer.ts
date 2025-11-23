@@ -16,6 +16,7 @@ import { rateLimiter } from "./utils/rateLimiter.js";
 import { RateLimitError } from "./utils/errors.js";
 import { sanitizeError } from "./utils/errors.js";
 import { handleMcpRequest, getToolDefinitions } from "./mcpProtocolHandler.js";
+import { handleSSEConnection, handleSSEMessage } from "./sseServer.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -213,6 +214,10 @@ app.post("/mcp", async (req: Request, res: Response) => {
     });
   }
 });
+
+// SSE endpoints for streamable-http transport
+app.get("/mcp/sse", handleSSEConnection);
+app.post("/mcp/sse/message", handleSSEMessage);
 
 // API versioning - v1 routes
 const v1Router = express.Router();

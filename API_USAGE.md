@@ -12,10 +12,10 @@ Add this to your Cursor MCP configuration file (`C:\Users\Keanu\.cursor\mcp.json
 {
   "mcpServers": {
     "cluster-services": {
-      "url": "https://mcp-cluster-services.theclusterflux.com/mcp",
+      "type": "streamable-http",
+      "url": "https://mcp-cluster-services.theclusterflux.com/mcp/sse",
       "headers": {
-        "Authorization": "Bearer YOUR_API_KEY_HERE",
-        "Content-Type": "application/json"
+        "Authorization": "Bearer YOUR_API_KEY_HERE"
       }
     }
   }
@@ -28,10 +28,10 @@ Or using the `X-API-Key` header:
 {
   "mcpServers": {
     "cluster-services": {
-      "url": "https://mcp-cluster-services.theclusterflux.com/mcp",
+      "type": "streamable-http",
+      "url": "https://mcp-cluster-services.theclusterflux.com/mcp/sse",
       "headers": {
-        "X-API-Key": "YOUR_API_KEY_HERE",
-        "Content-Type": "application/json"
+        "X-API-Key": "YOUR_API_KEY_HERE"
       }
     }
   }
@@ -39,7 +39,8 @@ Or using the `X-API-Key` header:
 ```
 
 **Note**: 
-- The MCP protocol endpoint is at `/mcp` (uses JSON-RPC 2.0 format for Cursor integration)
+- The SSE endpoint is at `/mcp/sse` (uses Server-Sent Events for streamable-http transport)
+- The simple POST endpoint is at `/mcp` (uses JSON-RPC 2.0 format, may not work with Cursor)
 - The REST API is at `/api/v1` (for direct HTTP calls)
 
 ## API Endpoints
