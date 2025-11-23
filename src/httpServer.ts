@@ -216,7 +216,9 @@ app.post("/mcp", async (req: Request, res: Response) => {
 });
 
 // SSE endpoints for streamable-http transport
+// GET for SSE connection, POST for streamable-http initialization
 app.get("/mcp/sse", handleSSEConnection);
+app.post("/mcp/sse", handleSSEConnection); // Also handle POST for streamable-http
 app.post("/mcp/sse/message", handleSSEMessage);
 
 // API versioning - v1 routes

@@ -269,6 +269,7 @@ const activeSessions = new Map<string, SSEServerTransport>();
 
 /**
  * SSE endpoint - GET request to establish SSE connection
+ * Also handles POST for streamable-http initialization
  */
 export function handleSSEConnection(req: Request, res: Response) {
   // Authenticate
@@ -280,6 +281,14 @@ export function handleSSEConnection(req: Request, res: Response) {
     return;
   }
 
+  // For POST requests (streamable-http initialization), handle as regular HTTP
+  if (req.method === "POST") {
+    // Handle streamable-http POST - treat as regular MCP protocol
+    handleStreamableHttpPost(req, res);
+    return;
+  }
+
+  // For GET requests, establish SSE connection
   // Use absolute URL for the message endpoint
   const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
   const host = req.headers.host || "mcp-cluster-services.theclusterflux.com";
@@ -308,6 +317,44 @@ export function handleSSEConnection(req: Request, res: Response) {
     console.error("Failed to start SSE transport:", error);
     res.status(500).end();
   });
+}
+
+/**
+ * Handle streamable-http POST requests (non-SSE HTTP transport)
+ * Uses the existing MCP protocol handler
+ */
+async function handleStreamableHttpPost(req: Request, res: Response) {
+  // Import and use the existing handler
+  const { handleMcpRequest } = await import("./mcpProtocolHandler.js");
+  
+  try {
+    const { jsonrpc, method, params, id } = req.body;
+
+    // Validate JSON-RPC 2.0 format
+    if (jsonrpc !== "2.0" || !method) {
+      return res.status(400).json({
+        jsonrpc: "2.0",
+        id: id !== undefined ? id : null,
+        error: {
+          code: -32600,
+          message: "Invalid Request",
+        },
+      });
+    }
+
+    // Handle MCP protocol request
+    const response = await handleMcpRequest(method, params || {}, id);
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      jsonrpc: "2.0",
+      id: req.body?.id !== undefined ? req.body.id : null,
+      error: {
+        code: -32603,
+        message: error instanceof Error ? error.message : String(error),
+      },
+    });
+  }
 }
 
 /**
