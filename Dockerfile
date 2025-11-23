@@ -39,7 +39,10 @@ RUN chown -R nodejs:nodejs /app
 
 USER nodejs
 
-# MCP servers communicate via stdio, so we don't need to expose ports
-# But we set it up to handle stdio properly
-ENTRYPOINT ["node", "dist/index.js"]
+# Expose HTTP port for API access
+EXPOSE 8080
+
+# Default to HTTP server mode (for shared access)
+# For stdio mode, override with: node dist/index.js
+ENTRYPOINT ["node", "dist/httpServer.js"]
 

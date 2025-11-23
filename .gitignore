@@ -6,3 +6,7 @@ dist/
 .DS_Store
 *.tsbuildinfo
 
+# Secrets - DO NOT COMMIT
+secrets.yaml
+API_KEY.txt
+

@@ -48,27 +48,33 @@ spec:
         - name: mcp-server-cluster-services
           image: docker.io/keanuwatts/theclusterflux:mcp-server-cluster-services
           imagePullPolicy: Always
-          # MCP servers use stdio, so no ports needed
-          # stdin, stdout, stderr are automatically available
-          stdin: true
-          tty: false
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "8080"
+            - name: API_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-server-api-keys
+                  key: api-keys
+          # Health check
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
       imagePullSecrets:
         - name: dockerhub-secret
-# NOTE: MCP servers communicate via stdio, not HTTP
-# To use this server, you have two options:
-#
-# Option 1: Run locally and connect to cluster via kubeconfig
-#   - Build: docker build -t docker.io/keanuwatts/theclusterflux:mcp-server-cluster-services .
-#   - Run locally: npm install && npm run build && npm start
-#   - Configure Cursor to use the local process
-#
-# Option 2: Run in-cluster and access via kubectl exec
-#   - Deploy this to your cluster
-#   - Access via: kubectl exec -it deployment/mcp-server-cluster-services -- node dist/index.js
-#   - Or use kubectl port-forward if you create a wrapper service
-#
-# The Service and Ingress below are optional and not used for MCP communication
-# They're kept in case you want to add an HTTP wrapper in the future
 ---
 apiVersion: v1
 kind: Service
@@ -78,7 +84,32 @@ spec:
   selector:
     app: mcp-server-cluster-services
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 8080
       targetPort: 8080
-  # ClusterIP: None  # Uncomment for headless service if needed
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mcp-server-cluster-services
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - mcp-cluster-services.theclusterflux.com
+    secretName: theclusterflux
+  rules:
+  - host: mcp-cluster-services.theclusterflux.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mcp-server-cluster-services
+            port:
+              number: 8080

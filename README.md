@@ -13,13 +13,11 @@ This Model Context Protocol (MCP) server enables AI assistants (like Cursor) to:
 
 ## Status
 
-🚧 **In Development** - Implementation in progress
+✅ **Ready for Deployment** - Implementation complete
 
-See `CONTEXT_FOR_AI.md` for current status and implementation details.
-
-## Implementation Plan
-
-Follow the detailed plan in `../MCP_PHASE3_CLUSTER_SERVICES.md`
+The server can run in two modes:
+- **HTTP API Mode** (recommended for shared access): Deploy to cluster, developers connect via HTTPS with API keys
+- **Stdio Mode** (for local development): Run locally, Cursor launches the process directly
 
 ## Tools Provided
 
@@ -35,24 +33,42 @@ Follow the detailed plan in `../MCP_PHASE3_CLUSTER_SERVICES.md`
 
 - TypeScript/Node.js
 - Model Context Protocol SDK
+- Express.js (for HTTP API mode)
 - Kubernetes Client Node
 - Axios for HTTP requests
 
-## Setup
+## Quick Start
+
+### For Developers (Using Deployed HTTP API)
+
+1. Get an API key from your cluster administrator
+2. Configure Cursor's MCP settings (see [API_USAGE.md](./API_USAGE.md))
+3. Start using the tools in Cursor!
+
+### For Local Development
 
 ```bash
 npm install
 npm run build
-npm start
+npm start        # Stdio mode (for local Cursor integration)
+npm run start:http  # HTTP mode (for testing)
 ```
 
-## Configuration
+## Documentation
 
-Configure in Cursor's MCP settings to connect to this server.
+- **[API_USAGE.md](./API_USAGE.md)** - How to connect Cursor to the HTTP API
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - How to deploy to Kubernetes
+- **[SSRF_PROTECTION.md](./SSRF_PROTECTION.md)** - Explanation of SSRF protection
+- **[k8s-secret-example.yaml](./k8s-secret-example.yaml)** - API key secret template
 
 ## Security
 
-- Read-only operations only
-- No secret values exposed
-- Rate limiting implemented
-- Input validation on all tools
+- **Read-only operations** - Only safe HTTP methods (GET, HEAD, OPTIONS)
+- **API key authentication** - Fail-safe by default (requires keys unless dev mode enabled)
+- **Rate limiting** - 100 requests/minute per API key
+- **SSRF protection** - Only allows cluster-internal service requests
+- **HTTPS enforcement** - Only accepts HTTPS requests (except localhost for dev)
+- **Input validation** - All inputs validated and sanitized
+- **Error sanitization** - No sensitive information leaked in errors
+- **Request size limits** - 1MB max payload size
+- **CORS** - Allows same-domain requests (for future website integration)

@@ -8,6 +8,7 @@ import { validateServiceName, validateNamespace, validateEndpoint, validateHttpM
 import { sanitizeError } from "../utils/errors.js";
 import { SERVICE_REGISTRY } from "../config/services.js";
 import { rateLimiter } from "../utils/rateLimiter.js";
+import { validateUrl } from "../utils/urlValidation.js";
 
 export async function testEndpoint(args: any) {
   try {
@@ -34,8 +35,11 @@ export async function testEndpoint(args: any) {
     const baseUrl = registryConfig?.baseUrl || 
       `http://${serviceName}.${namespace}.svc.cluster.local:${ports[0]}`;
 
-    // Build URL with query params
-    const url = new URL(endpoint, baseUrl);
+    // Build URL with query params and validate to prevent SSRF
+    const fullUrl = `${baseUrl}${endpoint}`;
+    const url = validateUrl(fullUrl, baseUrl);
+    
+    // Add query parameters
     for (const [key, value] of Object.entries(queryParams)) {
       url.searchParams.append(key, value);
     }
@@ -47,13 +51,13 @@ export async function testEndpoint(args: any) {
     try {
       switch (method) {
         case "GET":
-          response = await httpClient.get(url.toString(), { headers, timeout });
+          response = await httpClient.get(url.href, { headers, timeout });
           break;
         case "HEAD":
-          response = await httpClient.head(url.toString(), { headers, timeout });
+          response = await httpClient.head(url.href, { headers, timeout });
           break;
         case "OPTIONS":
-          response = await httpClient.options(url.toString(), { headers, timeout });
+          response = await httpClient.options(url.href, { headers, timeout });
           break;
         default:
           throw new Error(`Unsupported method: ${method}`);
@@ -81,12 +85,14 @@ export async function testEndpoint(args: any) {
         for (const port of ports.slice(1)) {
           try {
             const altBaseUrl = `http://${serviceName}.${namespace}.svc.cluster.local:${port}`;
-            const altUrl = new URL(endpoint, altBaseUrl);
+            const altFullUrl = `${altBaseUrl}${endpoint}`;
+            const altUrl = validateUrl(altFullUrl, altBaseUrl);
+            
             for (const [key, value] of Object.entries(queryParams)) {
               altUrl.searchParams.append(key, value);
             }
             
-            response = await httpClient.get(altUrl.toString(), { headers, timeout });
+            response = await httpClient.get(altUrl.href, { headers, timeout });
             
             const result = {
               success: response.statusCode >= 200 && response.statusCode < 400,

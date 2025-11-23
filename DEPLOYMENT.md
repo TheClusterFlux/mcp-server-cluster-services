@@ -10,6 +10,23 @@ docker build -t docker.io/keanuwatts/theclusterflux:mcp-server-cluster-services 
 docker push docker.io/keanuwatts/theclusterflux:mcp-server-cluster-services
 ```
 
+## Setting Up API Keys
+
+Before deploying, create a Kubernetes secret with API keys:
+
+```bash
+# Create secret with comma-separated API keys
+kubectl create secret generic mcp-server-api-keys \
+  --from-literal=api-keys="dev-key-1,dev-key-2,admin-key-1" \
+  --namespace=default
+```
+
+Or use the example file:
+```bash
+# Edit k8s-secret-example.yaml with your API keys, then:
+kubectl apply -f k8s-secret-example.yaml
+```
+
 ## Deploying to Kubernetes
 
 ```bash
@@ -17,58 +34,54 @@ docker push docker.io/keanuwatts/theclusterflux:mcp-server-cluster-services
 kubectl apply -f deployment.yaml
 ```
 
-## Important: How MCP Servers Work
+The deployment will:
+- Run the HTTP API server on port 8080
+- Expose it via Service and Ingress
+- Use the ServiceAccount with read-only Kubernetes permissions
+- Require API key authentication for all requests
 
-**MCP servers communicate via stdio (standard input/output), NOT HTTP.**
+## How It Works
 
-This means:
-- The server runs as a process that Cursor launches locally
-- It communicates through stdin/stdout pipes
-- The Kubernetes deployment is mainly for running it in-cluster with proper RBAC
+**HTTP API Mode (Deployed):**
+- Server runs as an HTTP REST API
+- Developers connect via HTTPS with API keys
+- No local installation needed
+- Accessible at: `https://mcp-cluster-services.theclusterflux.com`
 
-## Usage Options
+**Stdio Mode (Local Development):**
+- For local development/testing
+- Run: `npm start` (uses stdio)
+- Configure Cursor to launch the local process
 
-### Option 1: Run Locally (Recommended)
+## Usage
 
-1. **Build and run locally:**
-   ```bash
-   npm install
-   npm run build
-   npm start
-   ```
+### For Developers (HTTP API)
 
-2. **Configure Cursor** (usually in `~/.cursor/mcp.json` or Cursor settings):
-   ```json
-   {
-     "mcpServers": {
-       "cluster-services": {
-         "command": "node",
-         "args": ["/absolute/path/to/mcp-server-cluster-services/dist/index.js"],
-         "env": {
-           "KUBECONFIG": "/path/to/your/kubeconfig"
-         }
-       }
-     }
-   }
-   ```
+See [API_USAGE.md](./API_USAGE.md) for detailed instructions on connecting Cursor to the HTTP API.
 
-3. **Restart Cursor** - the server will launch automatically when needed.
+Quick setup in Cursor (`~/.cursor/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "cluster-services": {
+      "url": "https://mcp-cluster-services.theclusterflux.com/api/v1",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
 
-### Option 2: Run in-Cluster (Advanced)
+### For Local Development (Stdio)
 
-If you want to run it in the cluster and access it remotely:
+```bash
+npm install
+npm run build
+npm start  # Runs stdio server
+```
 
-1. **Deploy to cluster:**
-   ```bash
-   kubectl apply -f deployment.yaml
-   ```
-
-2. **Access via kubectl exec:**
-   ```bash
-   kubectl exec -it deployment/mcp-server-cluster-services -- node dist/index.js
-   ```
-
-3. **Or use port-forward with a wrapper** (requires additional HTTP wrapper service)
+Then configure Cursor to use the local process.
 
 ## Service Account Permissions
 
@@ -86,13 +99,26 @@ kubectl get pods -l app=mcp-server-cluster-services
 # Check logs
 kubectl logs -l app=mcp-server-cluster-services
 
-# Test the server (if running in-cluster)
-kubectl exec -it deployment/mcp-server-cluster-services -- node dist/index.js
+# Test health endpoint
+curl https://mcp-cluster-services.theclusterflux.com/health
+
+# Test API (with API key)
+curl -X POST https://mcp-cluster-services.theclusterflux.com/api/tools/list_services \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"namespace": "default"}'
 ```
+
+## Environment Variables
+
+- `PORT`: HTTP server port (default: 8080)
+- `API_KEYS`: Comma-separated list of valid API keys (from Kubernetes secret)
+- `DEV_MODE` or `DISABLE_AUTH`: Set to `"true"` to allow requests without API keys (development only)
+- `NODE_ENV`: Set to `"production"` for production mode (enforces HTTPS, strict auth)
 
 ## Troubleshooting
 
 - **Permission errors**: Ensure the ServiceAccount has proper RBAC permissions
-- **Connection issues**: Verify kubeconfig is accessible
+- **401 Unauthorized**: Check that API_KEYS secret exists and contains your key
+- **Connection issues**: Verify ingress is configured correctly
 - **Build errors**: Ensure all dependencies are in package.json
-
