@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server-cluster-services
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server-cluster-services
+  template:
+    metadata:
+      labels:
+        app: mcp-server-cluster-services
+    spec:
+      containers:
+        - name: mcp-server-cluster-services
+          image: docker.io/keanuwatts/theclusterflux:mcp-server-cluster-services
+          imagePullPolicy: Always
+      imagePullSecrets:
+        - name: dockerhub-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-server-cluster-services
+spec:
+  selector:
+    app: mcp-server-cluster-services
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mcp-server-cluster-services
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - mcp-cluster-services.theclusterflux.com
+    secretName: theclusterflux
+  rules:
+  - host: mcp-cluster-services.theclusterflux.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mcp-server-cluster-services
+            port:
+              number: 8080
