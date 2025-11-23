@@ -12,7 +12,7 @@ Add this to your Cursor MCP configuration file (`C:\Users\Keanu\.cursor\mcp.json
 {
   "mcpServers": {
     "cluster-services": {
-      "url": "https://mcp-cluster-services.theclusterflux.com/api/v1",
+      "url": "https://mcp-cluster-services.theclusterflux.com/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_API_KEY_HERE",
         "Content-Type": "application/json"
@@ -28,7 +28,7 @@ Or using the `X-API-Key` header:
 {
   "mcpServers": {
     "cluster-services": {
-      "url": "https://mcp-cluster-services.theclusterflux.com/api/v1",
+      "url": "https://mcp-cluster-services.theclusterflux.com/mcp",
       "headers": {
         "X-API-Key": "YOUR_API_KEY_HERE",
         "Content-Type": "application/json"
@@ -38,7 +38,9 @@ Or using the `X-API-Key` header:
 }
 ```
 
-**Note**: The API is versioned. Use `/api/v1` for the current version. Legacy routes (`/api/tools`) will redirect to v1.
+**Note**: 
+- The MCP protocol endpoint is at `/mcp` (uses JSON-RPC 2.0 format for Cursor integration)
+- The REST API is at `/api/v1` (for direct HTTP calls)
 
 ## API Endpoints
 

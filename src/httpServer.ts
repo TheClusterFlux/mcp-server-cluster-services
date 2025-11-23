@@ -15,6 +15,7 @@ import { validateApiKey } from "./config/auth.js";
 import { rateLimiter } from "./utils/rateLimiter.js";
 import { RateLimitError } from "./utils/errors.js";
 import { sanitizeError } from "./utils/errors.js";
+import { handleMcpRequest, getToolDefinitions } from "./mcpProtocolHandler.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -135,6 +136,10 @@ function authenticate(req: Request, res: Response, next: NextFunction) {
 app.use("/api", rateLimitMiddleware);
 app.use("/api", authenticate);
 
+// Apply rate limiting and authentication to MCP protocol endpoint
+app.use("/mcp", rateLimitMiddleware);
+app.use("/mcp", authenticate);
+
 // Helper to convert MCP response to HTTP response
 function mcpToHttp(mcpResponse: any): { error?: string; [key: string]: any } {
   if (mcpResponse.isError) {
@@ -175,6 +180,38 @@ app.get("/health", (req: Request, res: Response) => {
     version: API_VERSION,
     timestamp: new Date().toISOString()
   });
+});
+
+// MCP Protocol endpoint (JSON-RPC 2.0 format) - for Cursor integration
+app.post("/mcp", async (req: Request, res: Response) => {
+  try {
+    const { jsonrpc, method, params, id } = req.body;
+
+    // Validate JSON-RPC 2.0 format
+    if (jsonrpc !== "2.0" || !method) {
+      return res.status(400).json({
+        jsonrpc: "2.0",
+        id: id !== undefined ? id : null,
+        error: {
+          code: -32600,
+          message: "Invalid Request",
+        },
+      });
+    }
+
+    // Handle MCP protocol request
+    const response = await handleMcpRequest(method, params || {}, id);
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      jsonrpc: "2.0",
+      id: req.body?.id !== undefined ? req.body.id : null,
+      error: {
+        code: -32603,
+        message: sanitizeError(error),
+      },
+    });
+  }
 });
 
 // API versioning - v1 routes

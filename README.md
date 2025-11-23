@@ -58,7 +58,6 @@ npm run start:http  # HTTP mode (for testing)
 
 - **[API_USAGE.md](./API_USAGE.md)** - How to connect Cursor to the HTTP API
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - How to deploy to Kubernetes
-- **[SSRF_PROTECTION.md](./SSRF_PROTECTION.md)** - Explanation of SSRF protection
 - **[k8s-secret-example.yaml](./k8s-secret-example.yaml)** - API key secret template
 
 ## Security
