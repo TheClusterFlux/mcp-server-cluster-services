@@ -1,30 +1,58 @@
-# new-project-template
+# MCP Server - Cluster Services
 
-once read, please replace this readme with one detailing your service, what it does, how to use it, and any other relevant information. 😊
+MCP Server for discovering and interacting with cluster services in TheClusterFlux Kubernetes cluster.
 
-This repository is a template for creating new projects with Kubernetes-based deployments. It includes tools and configurations to streamline the setup process.
+## What This Does
 
-## Key Features
+This Model Context Protocol (MCP) server enables AI assistants (like Cursor) to:
+- Discover services deployed in your Kubernetes cluster
+- Understand API endpoints and their schemas
+- Check service health status
+- Make safe, read-only API calls to test endpoints
+- Retrieve API documentation
 
-- **Deployment YAML Generator**: A Bash script (`init.sh`) to generate Kubernetes deployment, service, and optional ingress configurations.
-- **GitHub Actions Workflow**: Automates the deployment of your service to a Kubernetes cluster.
+## Status
 
-## How to Use
+🚧 **In Development** - Implementation in progress
 
-1. **Clone or Use as a Template**:
-   - Clone this repository or use the "Use this template" button on GitHub to create a new repository.
+See `CONTEXT_FOR_AI.md` for current status and implementation details.
 
-2. **Run the Deployment YAML Generator**:
-   - Execute the `init.sh` script to generate Kubernetes YAML files:
-     ```bash
-     ./init.sh
-     ```
+## Implementation Plan
 
-3. **Add Your Code**:
-   - Add your service code and a `Dockerfile` to the repository.
-   - Ensure the service is exposed on port 8080 or update the generated YAML accordingly.
+Follow the detailed plan in `../MCP_PHASE3_CLUSTER_SERVICES.md`
 
-4. **Trigger Deployment**:
-   - Push changes to the `main` branch to deploy your service using the pre-configured GitHub Actions workflow.
+## Tools Provided
 
-This template simplifies Kubernetes deployments and ensures consistency across projects.
+1. `list_services` - List all services in cluster
+2. `get_service_info` - Get detailed service information  
+3. `get_service_health` - Check service health
+4. `discover_endpoints` - Discover API endpoints
+5. `get_endpoint_schema` - Get request/response schemas
+6. `test_endpoint` - Make safe read-only API calls
+7. `get_api_documentation` - Retrieve API docs
+
+## Technology Stack
+
+- TypeScript/Node.js
+- Model Context Protocol SDK
+- Kubernetes Client Node
+- Axios for HTTP requests
+
+## Setup
+
+```bash
+npm install
+npm run build
+npm start
+```
+
+## Configuration
+
+Configure in Cursor's MCP settings to connect to this server.
+
+## Security
+
+- Read-only operations only
+- No secret values exposed
+- Rate limiting implemented
+- Input validation on all tools
