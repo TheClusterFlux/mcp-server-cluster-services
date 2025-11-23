@@ -24,14 +24,20 @@ const API_VERSION = "v1";
 // Request size limit (1MB)
 app.use(express.json({ limit: "1mb" }));
 
-// HTTPS enforcement - only allow HTTPS requests
+// HTTPS enforcement - only allow HTTPS requests (except for health checks from cluster)
 app.use((req: Request, res: Response, next: NextFunction) => {
   const protocol = req.headers["x-forwarded-proto"] || req.protocol;
   
   // Allow localhost for development
   const isLocalhost = req.hostname === "localhost" || req.hostname === "127.0.0.1";
   
-  if (protocol !== "https" && !isLocalhost) {
+  // Allow HTTP for health checks (kubelet probes come via HTTP from within cluster)
+  const isHealthCheck = req.path === "/health";
+  
+  // Allow HTTP from cluster-internal IPs (10.x.x.x range for Kubernetes)
+  const isClusterInternal = req.ip?.startsWith("10.") || req.socket.remoteAddress?.startsWith("10.");
+  
+  if (protocol !== "https" && !isLocalhost && !isHealthCheck && !isClusterInternal) {
     return res.status(403).json({
       error: "HTTPS required",
       message: "This API only accepts HTTPS requests for security"
